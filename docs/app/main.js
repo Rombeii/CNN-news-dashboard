@@ -76,7 +76,7 @@ def update_data(event):
 pn.extension()
 
 
-csv_file = "extended_dataset.csv"
+csv_file = "./extended_dataset.csv"
 data = pd.read_csv(csv_file)
 filtered_data = data.copy()
 
