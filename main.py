@@ -7,12 +7,12 @@ def update_data(event):
     start, end = pd.Timestamp(date_start.value), pd.Timestamp(date_end.value)
 
     if start > end:
-        date_end.value = date_start.value
+        date_start.value, date_end.value = date_end.value, date_start.value
     else:
         filtered_occurrences = occurrences_by_date[
             (pd.to_datetime(occurrences_by_date["publication_date"]) >= start) &
             (pd.to_datetime(occurrences_by_date["publication_date"]) <= end)
-            ]
+        ]
         source.data = dict(
             publication_date=pd.to_datetime(filtered_occurrences["publication_date"]),
             count=filtered_occurrences["count"]
@@ -20,6 +20,22 @@ def update_data(event):
 
         p.x_range.start = filtered_occurrences["publication_date"].min()
         p.x_range.end = filtered_occurrences["publication_date"].max()
+
+        update_statistics(filtered_occurrences)
+
+
+def update_statistics(filtered_occurrences):
+    total_articles = filtered_occurrences["count"].sum()
+    min_articles = filtered_occurrences["count"].min()
+    min_articles_date = filtered_occurrences.loc[filtered_occurrences["count"].idxmin(), "publication_date"]
+    max_articles = filtered_occurrences["count"].max()
+    max_articles_date = filtered_occurrences.loc[filtered_occurrences["count"].idxmax(), "publication_date"]
+    avg_articles = filtered_occurrences["count"].mean()
+
+    total_occurrences_pane.object = f"**Total Published Articles:** {total_articles}"
+    min_occurrences_pane.object = f"**Minimum Published Articles:** {min_articles} (Date: {min_articles_date})"
+    max_occurrences_pane.object = f"**Maximum Published Articles:** {max_articles} (Date: {max_articles_date})"
+    average_occurrences_pane.object = f"**Average Published Articles:** {avg_articles:.2f}"
 
 
 pn.extension(sizing_mode="stretch_width", template="fast")
@@ -74,22 +90,41 @@ date_end = pn.widgets.DateSlider(name='End Date', start=filtered_data["publicati
 date_start.param.watch(update_data, "value")
 date_end.param.watch(update_data, "value")
 
-p = figure(title="Occurrences by Date", x_axis_label='Date', y_axis_label='Occurrences')
+p = figure(title="Number of Published Articles by Date", x_axis_label='Date',
+           y_axis_label='Number of Published Articles', width=800, height=400)
 source = ColumnDataSource(occurrences_by_date)
 p.line(x='publication_date', y='count', source=source, line_width=2)
 p.xaxis.formatter = DatetimeTickFormatter()
 
-hover_tool = HoverTool(tooltips=[("Publications", "@count")])
+hover_tool = HoverTool(tooltips=[("Date", "@publication_date{%F}"), ("Number of Articles", "@count")],
+                       formatters={"@publication_date": "datetime"})
+
 p.add_tools(hover_tool)
 
-chart = pn.pane.Bokeh(p)
-layout = pn.Column(
-    pn.Row(date_start),
-    pn.Row(date_end),
-    pn.Row(chart)
+total_occurrences_pane = pn.pane.Markdown()
+min_occurrences_pane = pn.pane.Markdown()
+max_occurrences_pane = pn.pane.Markdown()
+average_occurrences_pane = pn.pane.Markdown()
+
+update_statistics(occurrences_by_date)
+
+chart = pn.pane.Bokeh(p, sizing_mode="stretch_width")
+statistics = pn.Column(
+    pn.Row(total_occurrences_pane),
+    pn.Row(min_occurrences_pane),
+    pn.Row(max_occurrences_pane),
+    pn.Row(average_occurrences_pane),
 )
 
+layout = pn.Column(
+    pn.Row(date_start, date_end),
+    pn.Row(chart, statistics),
+)
+
+# For development purposes
 # if __name__.startswith("bokeh"):
-#     # Start with: panel serve script.py
+#     # Start with: panel serve main.py --show
+#     app = layout.servable()
+#     app.show(port=5007)
+
 app = layout.servable()
-# app.show(port=5007)
