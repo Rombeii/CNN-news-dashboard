@@ -138,10 +138,10 @@ layout = pn.Column(
     pn.Row(chart)
 )
 
-if __name__.startswith("bokeh"):
-    # Start with: panel serve script.py
-    app = layout.servable()
-    app.show(port=5007)
+# if __name__.startswith("bokeh"):
+#     # Start with: panel serve script.py
+app = layout.servable()
+app.show(port=5007)
 
 
 await write_doc()
