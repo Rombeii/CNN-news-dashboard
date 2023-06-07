@@ -170,12 +170,16 @@ def create_summary_layout():
     return content
 
 
-def create_pie_chart_layout():
+def create_topics_layout():
     # Calculate the count of articles per topic
     topic_counts = data['topic'].value_counts()
 
-    # Create a temporary DataFrame with topics and their counts
-    topics_data = pd.DataFrame({'topic': topic_counts.index, 'count': topic_counts.values})
+    # Calculate the average sentiment score per topic
+    topic_sentiment = data.groupby('topic')['sentiment_score'].mean()
+
+    # Create a temporary DataFrame with topics, counts, and average sentiment scores
+    topics_data = pd.DataFrame({'topic': topic_counts.index, 'count': topic_counts.values,
+                                'sentiment': topic_sentiment.values})
 
     # Calculate the angles and colors for the pie chart
     topics_data['angle'] = topics_data['count'] / topics_data['count'].sum() * 2 * pi
@@ -183,25 +187,40 @@ def create_pie_chart_layout():
     topics_data['color'] = Category10[len(topics_data)]
 
     # Create a Bokeh figure for the pie chart
-    p = figure(height=350, title="Pie Chart", toolbar_location=None,
+    pie_chart_plot = figure(height=500, title="Pie Chart", toolbar_location=None,
                tools="hover", tooltips="@topic: @percentage{0.0}%", x_range=(-0.5, 1.0))
 
     # Create the wedge glyph for the pie chart
-    r = p.wedge(x=0, y=1, radius=0.4,
+    pie_chart_plot.wedge(x=0, y=1, radius=0.4,
                 start_angle=cumsum('angle', include_zero=True), end_angle=cumsum('angle'),
                 line_color="white", fill_color='color', legend_field='topic', source=topics_data)
 
     # Set up the plot properties
-    p.axis.axis_label = None
-    p.axis.visible = False
-    p.grid.grid_line_color = None
+    pie_chart_plot.axis.axis_label = None
+    pie_chart_plot.axis.visible = False
+    pie_chart_plot.grid.grid_line_color = None
 
-    # Convert the Bokeh plot to a Panel object
-    bokeh_pane = pn.pane.Bokeh(p)
+    # Create a Bokeh figure for the bar chart
+    bar_plot = figure(height=500, title="Average Sentiment Score", x_range=topics_data['topic'],
+                toolbar_location=None, tooltips="@topic: @sentiment{0.00}", sizing_mode='stretch_width')
+
+    # Create the bar glyph for the bar chart
+    bar_plot.vbar(x='topic', top='sentiment', width=0.8, color='color', legend_field='topic', source=topics_data)
+
+    # Set up the plot properties
+    bar_plot.xgrid.grid_line_color = None
+    bar_plot.y_range.start = topics_data['sentiment'].min() - 0.1
+    bar_plot.yaxis.axis_label = 'Average Sentiment Score'
+    bar_plot.legend.location = "top_left"
+
+    # Convert the Bokeh plots to Panel objects
+    pie_chart_pane = pn.pane.Bokeh(pie_chart_plot)
+    bar_plot_pane = pn.pane.Bokeh(bar_plot)
 
     # Create the layout for the third tab
-    content = pn.Column(
-        bokeh_pane
+    content = pn.Column(pn.Row(
+        pie_chart_pane,
+        bar_plot_pane)
     )
 
     return content
@@ -233,8 +252,6 @@ def create_state_layout():
 
     # Create a folium map centered on the US
     state_map = folium.Map(location=[48, -102], zoom_start=3)
-
-    print(state_counts)
 
     # Create a choropleth map layer using the state counts
     state_map.choropleth(
@@ -269,11 +286,11 @@ except FileNotFoundError:
 tabs = pn.Tabs(
     ("Summary", create_summary_layout()),
     ("Date published", create_date_layout()),
-    ("Topics", create_pie_chart_layout()),
+    ("Topics", create_topics_layout()),
     ("States", create_state_layout()),
 )
 
-# For development purposes
+# # For development purposes
 # if __name__.startswith("bokeh"):
 #     # Start with: panel serve main.py --show
 #     app = tabs.servable()
