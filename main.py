@@ -2,13 +2,11 @@ from math import pi
 
 import panel as pn
 import pandas as pd
-from bokeh.plotting import figure
 from bokeh.models import ColumnDataSource, HoverTool, DatetimeTickFormatter
-from bokeh.models import HTMLTemplateFormatter
 from bokeh.plotting import figure
-from bokeh.io import show
 from bokeh.palettes import Category10
 from bokeh.transform import cumsum
+from folium import folium
 
 
 def update_data(event, date_start, date_end, occurrences_by_date, source, total_occurrences_pane,
@@ -209,6 +207,56 @@ def create_pie_chart_layout():
     return content
 
 
+def create_state_layout():
+    # Filter the data based on the condition
+    filtered_data = data[(data['city'] != 'Unknown') | (data['state'] != 'Unknown') | (data['country'] != 'Unknown')]
+
+    # Select the desired columns
+    filtered_data = filtered_data[['city', 'state', 'country']]
+
+    # Read the 'us-states.json' file
+    us_states = pd.read_json('https://raw.githubusercontent.com/python-visualization/folium/main/tests/us-states.json')
+
+    filtered_data['state'] = filtered_data['state'].str.title()
+
+    # Filter out rows where the state is not in the 'us-states.json' file
+    filtered_data = filtered_data[
+        filtered_data['state'].isin(us_states['features'].apply(lambda x: x['properties']['name']))]
+
+    # Calculate the count of articles per state
+    state_counts = filtered_data[filtered_data['state'] != 'Unknown']
+    state_counts = state_counts['state'].value_counts().reset_index()
+    state_counts.columns = ['state', 'count']
+
+    # Create a DataFrame widget to display the filtered data
+    filtered_data_widget = pn.widgets.DataFrame(state_counts, fit_columns=True, show_index=False)
+
+    # Create a folium map centered on the US
+    state_map = folium.Map(location=[48, -102], zoom_start=3)
+
+    print(state_counts)
+
+    # Create a choropleth map layer using the state counts
+    state_map.choropleth(
+                   geo_data='https://raw.githubusercontent.com/python-visualization/folium/main/tests/us-states.json',
+                   data=state_counts,
+                   columns=['state', 'count'],
+                   highlight=True,
+                   key_on='feature.properties.name',
+                   legend_name='Number of articles published',
+    )
+
+    folium_pane = pn.pane.plot.Folium(state_map, height=400)
+
+    # Create the layout for the tab
+    content = pn.Column(
+        folium_pane,
+        filtered_data_widget,
+    )
+
+    return content
+
+
 pn.extension(sizing_mode="stretch_width", template="fast")
 
 csv_file = "extended_dataset.csv"
@@ -222,6 +270,7 @@ tabs = pn.Tabs(
     ("Summary", create_summary_layout()),
     ("Date published", create_date_layout()),
     ("Topics", create_pie_chart_layout()),
+    ("States", create_state_layout()),
 )
 
 # For development purposes
