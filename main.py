@@ -22,7 +22,7 @@ def update_data(event):
         p.x_range.end = filtered_occurrences["publication_date"].max()
 
 
-pn.extension()
+pn.extension(sizing_mode="stretch_width", template="fast")
 
 
 csv_file = "extended_dataset.csv"
@@ -92,4 +92,4 @@ layout = pn.Column(
 # if __name__.startswith("bokeh"):
 #     # Start with: panel serve script.py
 app = layout.servable()
-app.show(port=5007)
+# app.show(port=5007)
