@@ -47,11 +47,17 @@ from panel.io.pyodide import init_doc, write_doc
 
 init_doc()
 
+from math import pi
+
 import panel as pn
 import pandas as pd
 from bokeh.plotting import figure
 from bokeh.models import ColumnDataSource, HoverTool, DatetimeTickFormatter
 from bokeh.models import HTMLTemplateFormatter
+from bokeh.plotting import figure
+from bokeh.io import show
+from bokeh.palettes import Category10
+from bokeh.transform import cumsum
 
 
 def update_data(event, date_start, date_end, occurrences_by_date, source, total_occurrences_pane,
@@ -179,6 +185,8 @@ def create_summary_layout():
     percentage_with_publication_date = (articles_with_publication_date / total_articles) * 100
 
     # Calculate the count of non-'Unknown' values for city, state, and country columns
+    articles_with_location = data[(data['city'] != 'Unknown') | (data['state'] != 'Unknown')
+                                  | (data['country'] != 'Unknown')].shape[0]
     articles_with_city = data[data['city'] != 'Unknown'].shape[0]
     articles_with_state = data[data['state'] != 'Unknown'].shape[0]
     articles_with_country = data[data['country'] != 'Unknown'].shape[0]
@@ -187,13 +195,13 @@ def create_summary_layout():
     summary_data = pd.DataFrame({
         'Descriptor': ['Total Articles', 'Articles with Publication Date'] +
                       [f'{topic.capitalize()} related topic' for topic in topic_categories] +
-                      ['Articles with City', 'Articles with State', 'Articles with Country'],
+                      ['Articles with Location', 'Articles with City', 'Articles with State', 'Articles with Country'],
         'Value': [total_articles, articles_with_publication_date] + articles_per_topic +
-                 [articles_with_city, articles_with_state, articles_with_country],
+                 [articles_with_location, articles_with_city, articles_with_state, articles_with_country],
         'Percentage': ['100%', f'{percentage_with_publication_date:.2f}%'] +
                       [f'{(articles / total_articles) * 100:.2f}%' for articles in articles_per_topic] +
                       [f'{(articles / total_articles) * 100:.2f}%' for articles in
-                       [articles_with_city, articles_with_state, articles_with_country]]
+                       [articles_with_location, articles_with_city, articles_with_state, articles_with_country]]
     })
 
     # Create a DataFrame widget to render the summary data
@@ -213,6 +221,41 @@ def create_summary_layout():
     return content
 
 
+def create_pie_chart_layout():
+    # Calculate the count of articles per topic
+    topic_counts = data['topic'].value_counts()
+
+    # Create a temporary DataFrame with topics and their counts
+    topics_data = pd.DataFrame({'topic': topic_counts.index, 'count': topic_counts.values})
+
+    # Calculate the angles and colors for the pie chart
+    topics_data['angle'] = topics_data['count'] / topics_data['count'].sum() * 2 * pi
+    topics_data['percentage'] = topics_data['count'] / topics_data['count'].sum() * 100
+    topics_data['color'] = Category10[len(topics_data)]
+
+    # Create a Bokeh figure for the pie chart
+    p = figure(height=350, title="Pie Chart", toolbar_location=None,
+               tools="hover", tooltips="@topic: @percentage{0.0}%", x_range=(-0.5, 1.0))
+
+    # Create the wedge glyph for the pie chart
+    r = p.wedge(x=0, y=1, radius=0.4,
+                start_angle=cumsum('angle', include_zero=True), end_angle=cumsum('angle'),
+                line_color="white", fill_color='color', legend_field='topic', source=topics_data)
+
+    # Set up the plot properties
+    p.axis.axis_label = None
+    p.axis.visible = False
+    p.grid.grid_line_color = None
+
+    # Convert the Bokeh plot to a Panel object
+    bokeh_pane = pn.pane.Bokeh(p)
+
+    # Create the layout for the third tab
+    content = pn.Column(
+        bokeh_pane
+    )
+
+    return content
 
 
 pn.extension(sizing_mode="stretch_width", template="fast")
@@ -224,13 +267,10 @@ except FileNotFoundError:
     csv_url = "https://raw.githubusercontent.com/Rombeii/CNN-news-dashboard/main/extended_dataset.csv"
     data = pd.read_csv(csv_url)
 
-
-tab2_content = pn.pane.Markdown("Content for Tab 2")  # Placeholder content for Tab 2
-
-
 tabs = pn.Tabs(
     ("Summary", create_summary_layout()),
     ("Date published", create_date_layout()),
+    ("Topics", create_pie_chart_layout()),
 )
 
 # For development purposes
