@@ -81,8 +81,8 @@ csv_file = "extended_dataset.csv"
 try:
     data = pd.read_csv(csv_file)
 except FileNotFoundError:
-    url = "https://rombeii.github.io/CNN-news-dashboard/app/extended_dataset.csv"
-    data = pd.read_csv(urllib.request.urlopen(url))
+    csv_url = "https://raw.githubusercontent.com/Rombeii/CNN-news-dashboard/main/extended_dataset.csv"
+    data = pd.read_csv(csv_url)
 filtered_data = data.copy()
 
 # Filter out rows with unknown publication dates
@@ -145,6 +145,7 @@ if __name__.startswith("bokeh"):
     # Start with: panel serve script.py
     app = layout.servable()
     app.show(port=5007)
+
 
 await write_doc()
   `
