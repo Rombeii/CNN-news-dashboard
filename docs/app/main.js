@@ -51,11 +51,12 @@ from math import pi
 
 import panel as pn
 import pandas as pd
-from bokeh.models import ColumnDataSource, HoverTool, DatetimeTickFormatter
+from bokeh.models import ColumnDataSource, HoverTool, DatetimeTickFormatter, NumeralTickFormatter
 from bokeh.plotting import figure
 from bokeh.palettes import Category10
 from bokeh.transform import cumsum
 from folium import folium
+from panel.widgets import CheckButtonGroup
 
 
 def update_data(event, date_start, date_end, occurrences_by_date, source, total_occurrences_pane,
@@ -219,6 +220,69 @@ def create_summary_layout():
     return content
 
 
+def create_line_plot(data):
+    # Filter out rows with 'Unknown' publication dates
+    data = data[data['publication_date'] != 'Unknown']
+
+    # Convert publication dates to date format
+    data['publication_date'] = pd.to_datetime(data['publication_date'], format="%Y-%m-%d %H:%M").dt.date
+
+    # Group the data by topic and publication date, and calculate average sentiment score
+    grouped_data = data.groupby(['topic', 'publication_date'])['sentiment_score'].mean().reset_index()
+
+    # Sort the data by publication date
+    grouped_data = grouped_data.sort_values('publication_date')
+
+    # Create a Bokeh figure for the line plot
+    line_plot = figure(height=500, title="Average Sentiment Score Over Time", x_axis_type='datetime',
+                       toolbar_location=None, sizing_mode='stretch_width')
+
+    # Create a new column for smoothed sentiment scores
+    grouped_data['smoothed_sentiment'] = grouped_data.groupby('topic')['sentiment_score'].\
+        rolling(window=100, center=True).mean().reset_index(0, drop=True)
+
+    # Get unique topics
+    topics = grouped_data['topic'].unique()
+
+    # Color palette for the lines
+    color_palette = Category10[max(3, len(topics))]
+
+    # Add a line glyph for each topic to the line plot
+    lines = []
+    for i, topic in enumerate(topics):
+        topic_data = grouped_data[grouped_data['topic'] == topic]
+        line_data = ColumnDataSource(topic_data)  # Create ColumnDataSource for the selected topic data
+
+        line = line_plot.line(x='publication_date', y='smoothed_sentiment', source=line_data, line_color=color_palette[i],
+                              legend_label=topic, line_width=2, alpha=0.8)
+        lines.append(line)
+
+    # Set up plot properties
+    line_plot.xaxis.axis_label = 'Publication Date'
+    line_plot.yaxis.axis_label = 'Average Sentiment Score'
+    line_plot.legend.title = 'Topics'
+    line_plot.legend.location = 'top_left'
+    line_plot.yaxis.formatter = NumeralTickFormatter(format="0.00") # Format y-axis ticks as two decimal places
+
+    # Create CheckboxGroup for topic selection
+    topic_selection = CheckButtonGroup(options=['business', 'entertainment', 'politics', 'tech', 'sport'],
+                                       value=['business', 'entertainment', 'politics', 'tech', 'sport'])
+
+    # Create a callback function to toggle the visibility of lines based on the selected topics
+    def update_lines(event, param):
+        for i, (line, topic) in enumerate(zip(lines, topics)):
+            line.visible = topic in param
+
+    # Use the watch function to update the plot when the selection changes
+    topic_selection.param.watch(lambda event: update_lines(event, topic_selection.value), 'value')
+
+
+    # Combine the line plot and the topic selection into a layout
+    layout = pn.Row(line_plot, topic_selection)
+
+    return layout
+
+
 def create_topics_layout():
     # Calculate the count of articles per topic
     topic_counts = data['topic'].value_counts()
@@ -269,7 +333,8 @@ def create_topics_layout():
     # Create the layout for the third tab
     content = pn.Column(pn.Row(
         pie_chart_pane,
-        bar_plot_pane)
+        bar_plot_pane),
+        create_line_plot(data)
     )
 
     return content
@@ -339,7 +404,7 @@ tabs = pn.Tabs(
     ("States", create_state_layout()),
 )
 
-# # For development purposes
+# For development purposes
 # if __name__.startswith("bokeh"):
 #     # Start with: panel serve main.py --show
 #     app = tabs.servable()
