@@ -2,9 +2,6 @@ import panel as pn
 import pandas as pd
 from bokeh.plotting import figure
 from bokeh.models import ColumnDataSource, HoverTool, DatetimeTickFormatter
-from bokeh.layouts import column, row
-import urllib
-
 
 def update_data(event):
     start, end = pd.Timestamp(date_start.value), pd.Timestamp(date_end.value)
