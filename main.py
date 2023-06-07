@@ -3,6 +3,7 @@ import pandas as pd
 from bokeh.plotting import figure
 from bokeh.models import ColumnDataSource, HoverTool, DatetimeTickFormatter
 from bokeh.layouts import column, row
+import urllib
 
 
 def update_data(event):
@@ -28,7 +29,11 @@ pn.extension()
 
 
 csv_file = "extended_dataset.csv"
-data = pd.read_csv(csv_file)
+try:
+    data = pd.read_csv(csv_file)
+except FileNotFoundError:
+    url = "https://rombeii.github.io/CNN-news-dashboard/app/extended_dataset.csv"
+    data = pd.read_csv(urllib.request.urlopen(url))
 filtered_data = data.copy()
 
 # Filter out rows with unknown publication dates
