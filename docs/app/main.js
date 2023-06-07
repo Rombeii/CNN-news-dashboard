@@ -278,7 +278,7 @@ def create_line_plot(data):
 
 
     # Combine the line plot and the topic selection into a layout
-    layout = pn.Row(line_plot, topic_selection)
+    layout = pn.Column(topic_selection, line_plot)
 
     return layout
 
