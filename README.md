@@ -1,6 +1,6 @@
 # CNN News Dashboard
 
-CNN News Dashboard is a Python project that provides a dashboard interface for exploring the # CNN-DailyMail News Text Summarization dataset. This dashboard allows users to visualize and analyze various aspects of the news articles in an interactive manner.
+CNN News Dashboard is a Python project that provides a dashboard interface for exploring the CNN-DailyMail News Text Summarization dataset. This dashboard allows users to visualize and analyze various aspects of the news articles in an interactive manner.
 
 ## Dataset
 
