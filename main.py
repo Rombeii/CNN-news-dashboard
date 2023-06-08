@@ -11,7 +11,7 @@ from panel.widgets import CheckButtonGroup
 
 
 def update_data(event, date_start, date_end, occurrences_by_date, source, total_occurrences_pane,
-                      min_occurrences_pane, max_occurrences_pane, average_occurrences_pane, p, data_table):
+                min_occurrences_pane, max_occurrences_pane, average_occurrences_pane, p, data_table):
     start, end = pd.Timestamp(date_start.value), pd.Timestamp(date_end.value)
 
     if start > end:
@@ -20,7 +20,7 @@ def update_data(event, date_start, date_end, occurrences_by_date, source, total_
         filtered_occurrences = occurrences_by_date[
             (pd.to_datetime(occurrences_by_date["publication_date"]) >= start) &
             (pd.to_datetime(occurrences_by_date["publication_date"]) <= end)
-        ]
+            ]
         source.data = dict(
             publication_date=pd.to_datetime(filtered_occurrences["publication_date"]),
             count=filtered_occurrences["count"]
@@ -101,10 +101,12 @@ def create_date_layout():
 
     date_start.param.watch(lambda event: update_data(event, date_start, date_end, occurrences_by_date, source,
                                                      total_occurrences_pane, min_occurrences_pane,
-                                                     max_occurrences_pane, average_occurrences_pane, p, data_table), "value")
+                                                     max_occurrences_pane, average_occurrences_pane, p, data_table),
+                           "value")
     date_end.param.watch(lambda event: update_data(event, date_start, date_end, occurrences_by_date, source,
                                                    total_occurrences_pane, min_occurrences_pane,
-                                                   max_occurrences_pane, average_occurrences_pane, p, data_table), "value")
+                                                   max_occurrences_pane, average_occurrences_pane, p, data_table),
+                         "value")
 
     data_table = pn.widgets.DataFrame(filtered_data, height=600, sortable=True, show_index=False)
 
@@ -189,7 +191,7 @@ def create_line_plot(data):
                        toolbar_location=None, sizing_mode='stretch_width')
 
     # Create a new column for smoothed sentiment scores
-    grouped_data['smoothed_sentiment'] = grouped_data.groupby('topic')['sentiment_score'].\
+    grouped_data['smoothed_sentiment'] = grouped_data.groupby('topic')['sentiment_score']. \
         rolling(window=100, center=True).mean().reset_index(0, drop=True)
 
     # Get unique topics
@@ -204,7 +206,8 @@ def create_line_plot(data):
         topic_data = grouped_data[grouped_data['topic'] == topic]
         line_data = ColumnDataSource(topic_data)  # Create ColumnDataSource for the selected topic data
 
-        line = line_plot.line(x='publication_date', y='smoothed_sentiment', source=line_data, line_color=color_palette[i],
+        line = line_plot.line(x='publication_date', y='smoothed_sentiment', source=line_data,
+                              line_color=color_palette[i],
                               legend_label=topic, line_width=2, alpha=0.8)
         lines.append(line)
 
@@ -213,7 +216,7 @@ def create_line_plot(data):
     line_plot.yaxis.axis_label = 'Average Sentiment Score'
     line_plot.legend.title = 'Topics'
     line_plot.legend.location = 'top_left'
-    line_plot.yaxis.formatter = NumeralTickFormatter(format="0.00") # Format y-axis ticks as two decimal places
+    line_plot.yaxis.formatter = NumeralTickFormatter(format="0.00")  # Format y-axis ticks as two decimal places
 
     # Create CheckboxGroup for topic selection
     topic_selection = CheckButtonGroup(options=topics.tolist(),
@@ -226,7 +229,6 @@ def create_line_plot(data):
 
     # Use the watch function to update the plot when the selection changes
     topic_selection.param.watch(lambda event: update_lines(event, topic_selection.value), 'value')
-
 
     # Combine the line plot and the topic selection into a layout
     layout = pn.Column(topic_selection, line_plot)
@@ -290,12 +292,12 @@ def create_topics_layout():
 
     # Create a Bokeh figure for the pie chart
     pie_chart_plot = figure(height=500, title="Pie Chart", toolbar_location=None,
-               tools="hover", tooltips="@topic: @percentage{0.0}%", x_range=(-0.5, 1.0))
+                            tools="hover", tooltips="@topic: @percentage{0.0}%", x_range=(-0.5, 1.0))
 
     # Create the wedge glyph for the pie chart
     pie_chart_plot.wedge(x=0, y=1, radius=0.4,
-                start_angle=cumsum('angle', include_zero=True), end_angle=cumsum('angle'),
-                line_color="white", fill_color='color', legend_field='topic', source=topics_data)
+                         start_angle=cumsum('angle', include_zero=True), end_angle=cumsum('angle'),
+                         line_color="white", fill_color='color', legend_field='topic', source=topics_data)
 
     # Set up the plot properties
     pie_chart_plot.axis.axis_label = None
@@ -304,7 +306,7 @@ def create_topics_layout():
 
     # Create a Bokeh figure for the bar chart
     bar_plot = figure(height=500, title="Average Sentiment Score", x_range=topics_data['topic'],
-                toolbar_location=None, tooltips="@topic: @sentiment{0.00}", sizing_mode='stretch_width')
+                      toolbar_location=None, tooltips="@topic: @sentiment{0.00}", sizing_mode='stretch_width')
 
     # Create the bar glyph for the bar chart
     bar_plot.vbar(x='topic', top='sentiment', width=0.8, color='color', legend_field='topic', source=topics_data)
@@ -358,12 +360,12 @@ def create_state_layout():
 
     # Create a choropleth map layer using the state counts
     state_map.choropleth(
-                   geo_data='https://raw.githubusercontent.com/python-visualization/folium/main/tests/us-states.json',
-                   data=state_counts,
-                   columns=['state', 'count'],
-                   highlight=True,
-                   key_on='feature.properties.name',
-                   legend_name='Number of articles published',
+        geo_data='https://raw.githubusercontent.com/python-visualization/folium/main/tests/us-states.json',
+        data=state_counts,
+        columns=['state', 'count'],
+        highlight=True,
+        key_on='feature.properties.name',
+        legend_name='Number of articles published',
     )
 
     folium_pane = pn.pane.plot.Folium(state_map, height=400)
@@ -391,9 +393,9 @@ def create_country_layout():
     filtered_data['country'] = filtered_data['country'].str.title()
 
     # Filter out rows where the state is not in the 'us-states.json' file
-    filtered_data = filtered_data[ (filtered_data['state'] == 'Unknown') |
-                                   (filtered_data['state'].isin(us_states['features']
-                                                                .apply(lambda x: x['properties']['name'])))]
+    filtered_data = filtered_data[(filtered_data['state'] == 'Unknown') |
+                                  (filtered_data['state'].isin(us_states['features']
+                                                               .apply(lambda x: x['properties']['name'])))]
 
     # Replace the country with 'United States of America'
     filtered_data.loc[filtered_data['state'] != 'Unknown', 'country'] = 'United States of America'
@@ -411,12 +413,12 @@ def create_country_layout():
 
     # Create a choropleth map layer using the state counts
     country_map.choropleth(
-                   geo_data='https://raw.githubusercontent.com/python-visualization/folium/main/examples/data/world-countries.json',
-                   data=country_counts,
-                   columns=['country', 'count'],
-                   highlight=True,
-                   key_on='feature.properties.name',
-                   legend_name='Number of articles published',
+        geo_data='https://raw.githubusercontent.com/python-visualization/folium/main/examples/data/world-countries.json',
+        data=country_counts,
+        columns=['country', 'count'],
+        highlight=True,
+        key_on='feature.properties.name',
+        legend_name='Number of articles published',
     )
 
     folium_pane = pn.pane.plot.Folium(country_map, height=400)
@@ -446,9 +448,9 @@ def create_wordcloud_layout():
         image_pane = pn.pane.PNG(url, width=800, style={'margin': 'auto'})
         wordcloud_panel.append(image_pane)
     return pn.Column(
-    pn.Row(wordcloud_panel),
-    pn.Spacer(height=20)
-)
+        pn.Row(wordcloud_panel),
+        pn.Spacer(height=20)
+    )
 
 
 pn.extension(sizing_mode="stretch_width", template="fast")
@@ -471,8 +473,8 @@ tabs = pn.Tabs(
 
 # For development purposes
 # if __name__.startswith("bokeh"):
-#     # Start with: panel serve main.py --show
-#     app = tabs.servable()
-#     app.show(port=5007)
+    # Start with: panel serve main.py --show
+    # app = tabs.servable()
+    # app.show(port=5007)
 
 app = tabs.servable()
