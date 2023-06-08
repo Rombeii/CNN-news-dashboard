@@ -395,8 +395,8 @@ def create_country_layout():
                                    (filtered_data['state'].isin(us_states['features']
                                                                 .apply(lambda x: x['properties']['name'])))]
 
-    # Replace the country with 'United States'
-    filtered_data.loc[filtered_data['state'] != 'Unknown', 'country'] = 'United States'
+    # Replace the country with 'United States of America'
+    filtered_data.loc[filtered_data['state'] != 'Unknown', 'country'] = 'United States of America'
 
     # Calculate the count of articles per state
     country_counts = filtered_data[filtered_data['country'] != 'Unknown']
@@ -411,7 +411,7 @@ def create_country_layout():
 
     # Create a choropleth map layer using the state counts
     country_map.choropleth(
-                   geo_data='http://geojson.xyz/naturalearth-3.3.0/ne_50m_admin_0_countries.geojson',
+                   geo_data='https://raw.githubusercontent.com/python-visualization/folium/main/examples/data/world-countries.json',
                    data=country_counts,
                    columns=['country', 'count'],
                    highlight=True,
