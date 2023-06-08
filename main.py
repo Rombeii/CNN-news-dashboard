@@ -430,6 +430,27 @@ def create_country_layout():
     return content
 
 
+def create_wordcloud_layout():
+    wordcloud_panel = pn.Column()
+
+    # Add wordcloud images to the panel
+    wordcloud_urls = [
+        'https://raw.githubusercontent.com/Rombeii/CNN-news-dashboard/9173f4f2f1a1a558c5b2d3c2544091a9b974e930/wordclouds/wordcloud_business.png',
+        'https://raw.githubusercontent.com/Rombeii/CNN-news-dashboard/9173f4f2f1a1a558c5b2d3c2544091a9b974e930/wordclouds/wordcloud_entertainment.png',
+        'https://raw.githubusercontent.com/Rombeii/CNN-news-dashboard/9173f4f2f1a1a558c5b2d3c2544091a9b974e930/wordclouds/wordcloud_politics.png',
+        'https://raw.githubusercontent.com/Rombeii/CNN-news-dashboard/9173f4f2f1a1a558c5b2d3c2544091a9b974e930/wordclouds/wordcloud_sport.png',
+        'https://raw.githubusercontent.com/Rombeii/CNN-news-dashboard/9173f4f2f1a1a558c5b2d3c2544091a9b974e930/wordclouds/wordcloud_tech.png',
+    ]
+
+    for url in wordcloud_urls:
+        image_pane = pn.pane.PNG(url, width=800, style={'margin': 'auto'})
+        wordcloud_panel.append(image_pane)
+    return pn.Column(
+    pn.Row(wordcloud_panel),
+    pn.Spacer(height=20)
+)
+
+
 pn.extension(sizing_mode="stretch_width", template="fast")
 
 csv_file = "extended_dataset.csv"
@@ -445,6 +466,7 @@ tabs = pn.Tabs(
     ("Topics and sentiments", create_topics_layout()),
     ("States", create_state_layout()),
     ("Countries", create_country_layout()),
+    ("Wordclouds", create_wordcloud_layout()),
 )
 
 # For development purposes

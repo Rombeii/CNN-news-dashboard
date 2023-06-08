@@ -2,6 +2,8 @@
 
 CNN News Dashboard is a Python project that provides a dashboard interface for exploring the CNN-DailyMail News Text Summarization dataset. This dashboard allows users to visualize and analyze various aspects of the news articles in an interactive manner.
 
+The Dashboard is deployed to [Github Pages](https://rombeii.github.io/CNN-news-dashboard/app/main.html).
+
 ## Dataset
 
 The CNN-DailyMail news text summarization dataset used in this project is sourced from [this Kaggle dataset](https://www.kaggle.com/datasets/gowrishankarp/newspaper-text-summarization-cnn-dailymail). It contains a collection of news articles from CNN and DailyMail, along with corresponding article summaries. The dataset provides an excellent resource for text summarization research and analysis.
