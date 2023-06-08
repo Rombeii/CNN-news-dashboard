@@ -426,6 +426,59 @@ def create_state_layout():
     return content
 
 
+def create_country_layout():
+    # Filter the data based on the condition
+    filtered_data = data[(data['city'] != 'Unknown') | (data['state'] != 'Unknown') | (data['country'] != 'Unknown')]
+
+    # Select the desired columns
+    filtered_data = filtered_data[['city', 'state', 'country']]
+
+    # Read the 'us-states.json' file
+    us_states = pd.read_json('https://raw.githubusercontent.com/python-visualization/folium/main/tests/us-states.json')
+
+    filtered_data['state'] = filtered_data['state'].str.title()
+    filtered_data['country'] = filtered_data['country'].str.title()
+
+    # Filter out rows where the state is not in the 'us-states.json' file
+    filtered_data = filtered_data[ (filtered_data['state'] == 'Unknown') |
+                                   (filtered_data['state'].isin(us_states['features']
+                                                                .apply(lambda x: x['properties']['name'])))]
+
+    # Replace the country with 'United States'
+    filtered_data.loc[filtered_data['state'] != 'Unknown', 'country'] = 'United States'
+
+    # Calculate the count of articles per state
+    country_counts = filtered_data[filtered_data['country'] != 'Unknown']
+    country_counts = country_counts['country'].value_counts().reset_index()
+    country_counts.columns = ['country', 'count']
+
+    # Create a DataFrame widget to display the filtered data
+    filtered_data_widget = pn.widgets.DataFrame(country_counts, fit_columns=True, show_index=False)
+
+    # Create a folium map centered on the US
+    country_map = folium.Map(location=(30, 10), zoom_start=3, tiles="cartodb positron")
+
+    # Create a choropleth map layer using the state counts
+    country_map.choropleth(
+                   geo_data='http://geojson.xyz/naturalearth-3.3.0/ne_50m_admin_0_countries.geojson',
+                   data=country_counts,
+                   columns=['country', 'count'],
+                   highlight=True,
+                   key_on='feature.properties.name',
+                   legend_name='Number of articles published',
+    )
+
+    folium_pane = pn.pane.plot.Folium(country_map, height=400)
+
+    # Create the layout for the tab
+    content = pn.Column(
+        folium_pane,
+        filtered_data_widget,
+    )
+
+    return content
+
+
 pn.extension(sizing_mode="stretch_width", template="fast")
 
 csv_file = "extended_dataset.csv"
@@ -440,6 +493,7 @@ tabs = pn.Tabs(
     ("Date published", create_date_layout()),
     ("Topics and sentiments", create_topics_layout()),
     ("States", create_state_layout()),
+    ("Countries", create_country_layout()),
 )
 
 # For development purposes
