@@ -2,10 +2,10 @@ from math import pi
 
 import panel as pn
 import pandas as pd
-from bokeh.models import ColumnDataSource, HoverTool, DatetimeTickFormatter, NumeralTickFormatter
+from bokeh.models import ColumnDataSource, HoverTool, DatetimeTickFormatter, NumeralTickFormatter, Whisker
 from bokeh.plotting import figure
 from bokeh.palettes import Category10
-from bokeh.transform import cumsum
+from bokeh.transform import cumsum, factor_cmap
 from folium import folium
 from panel.widgets import CheckButtonGroup
 
@@ -216,8 +216,8 @@ def create_line_plot(data):
     line_plot.yaxis.formatter = NumeralTickFormatter(format="0.00") # Format y-axis ticks as two decimal places
 
     # Create CheckboxGroup for topic selection
-    topic_selection = CheckButtonGroup(options=['business', 'entertainment', 'politics', 'tech', 'sport'],
-                                       value=['business', 'entertainment', 'politics', 'tech', 'sport'])
+    topic_selection = CheckButtonGroup(options=topics.tolist(),
+                                       value=topics.tolist())
 
     # Create a callback function to toggle the visibility of lines based on the selected topics
     def update_lines(event, param):
@@ -232,6 +232,44 @@ def create_line_plot(data):
     layout = pn.Column(topic_selection, line_plot)
 
     return layout
+
+
+def create_box_plot(data):
+    qs = data.groupby("topic")['sentiment_score'].quantile([0.25, 0.5, 0.75])
+    qs = qs.unstack().reset_index()
+    qs.columns = ["topic", "q1", "q2", "q3"]
+    data = pd.merge(data, qs, on="topic", how="left")
+
+    # Calculate IQR outlier bounds
+    iqr = data.q3 - data.q1
+    data["upper"] = data.q3 + 1.5 * iqr
+    data["lower"] = data.q1 - 1.5 * iqr
+
+    source = ColumnDataSource(data)
+
+    p = figure(x_range=data.topic.unique(), tools="", toolbar_location=None,
+               title="Sentiment Score Distribution by Topic",
+               background_fill_color="#eaefef", y_axis_label="Sentiment Score")
+
+    # Outlier range
+    whisker = Whisker(base="topic", upper="upper", lower="lower", source=source)
+    whisker.upper_head.size = whisker.lower_head.size = 20
+    p.add_layout(whisker)
+
+    # Quantile boxes
+    cmap = factor_cmap("topic", "TolRainbow7", data.topic.unique())
+    p.vbar("topic", 0.7, "q2", "q3", source=source, color=cmap, line_color="black")
+    p.vbar("topic", 0.7, "q1", "q2", source=source, color=cmap, line_color="black")
+
+    # Outliers
+    outliers = data[~data.sentiment_score.between(data.lower, data.upper)]
+    p.scatter("topic", "sentiment_score", source=outliers, size=6, color="black", alpha=0.3)
+
+    p.xgrid.grid_line_color = None
+    p.axis.major_label_text_font_size = "14px"
+    p.axis.axis_label_text_font_size = "12px"
+
+    return p
 
 
 def create_topics_layout():
@@ -284,7 +322,7 @@ def create_topics_layout():
     # Create the layout for the third tab
     content = pn.Column(pn.Row(
         pie_chart_pane,
-        bar_plot_pane),
+        bar_plot_pane, create_box_plot(data)),
         create_line_plot(data)
     )
 
@@ -351,7 +389,7 @@ except FileNotFoundError:
 tabs = pn.Tabs(
     ("Summary", create_summary_layout()),
     ("Date published", create_date_layout()),
-    ("Topics", create_topics_layout()),
+    ("Topics and sentiments", create_topics_layout()),
     ("States", create_state_layout()),
 )
 
